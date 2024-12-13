@@ -14,10 +14,11 @@ pub fn beefw(ctx: XdpContext) -> u32 {
 
 fn try_beefw(ctx: XdpContext) -> Result<u32, u32> {
     info!(&ctx, "received a packet");
-    Ok(xdp_action::XDP_DROP)
+    Ok(xdp_action::XDP_PASS)
 }
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    unsafe { core::hint::unreachable_unchecked() }
+    loop {}
 }

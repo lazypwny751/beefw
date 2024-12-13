@@ -1,9 +1,8 @@
-use anyhow::Context;
+use anyhow::Context as _;
 use aya::programs::{Xdp, XdpFlags};
-use aya::{include_bytes_aligned, Ebpf};
-use aya_log::EbpfLogger;
 use clap::Parser;
-use log::{info, warn, debug};
+#[rustfmt::skip]
+use log::{debug, warn};
 use tokio::signal;
 
 #[derive(Debug, Parser)]
@@ -13,7 +12,7 @@ struct Opt {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> anyhow::Result<()> {
     let opt = Opt::parse();
 
     env_logger::init();
@@ -33,30 +32,24 @@ async fn main() -> Result<(), anyhow::Error> {
     // runtime. This approach is recommended for most real-world use cases. If you would
     // like to specify the eBPF program at runtime rather than at compile-time, you can
     // reach for `Bpf::load_file` instead.
-    #[cfg(debug_assertions)]
-    let mut bpf = Ebpf::load(include_bytes_aligned!(
-        "../../target/bpfel-unknown-none/debug/beefw"
-    ))?;
-
-    #[cfg(not(debug_assertions))]
-    let mut bpf = Ebpf::load(include_bytes_aligned!(
-        "../../target/bpfel-unknown-none/release/beefw"
-    ))?;
-
-    if let Err(e) = EbpfLogger::init(&mut bpf) {
+    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+        env!("OUT_DIR"),
+        "/beefw"
+    )))?;
+    if let Err(e) = aya_log::EbpfLogger::init(&mut ebpf) {
         // This can happen if you remove all log statements from your eBPF program.
         warn!("failed to initialize eBPF logger: {}", e);
     }
-
-    let program: &mut Xdp = bpf.program_mut("beefw").unwrap().try_into()?;
-
+    let Opt { iface } = opt;
+    let program: &mut Xdp = ebpf.program_mut("beefw").unwrap().try_into()?;
     program.load()?;
-    program.attach(&opt.iface, XdpFlags::default())
+    program.attach(&iface, XdpFlags::default())
         .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
-    info!("Waiting for Ctrl-C...");
-    signal::ctrl_c().await?;
-    info!("Exiting...");
+    let ctrl_c = signal::ctrl_c();
+    println!("Waiting for Ctrl-C...");
+    ctrl_c.await?;
+    println!("Exiting...");
 
     Ok(())
 }
