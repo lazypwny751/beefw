@@ -1,5 +1,12 @@
 # beefw
 
+## TODO
+- clippy check workflow.
+- read rules from userspace to kernelspace.
+- example/sample rules.
+- xdp program.
+- ratatui tui.
+
 ## Prerequisites
 
 1. stable rust toolchains: `rustup toolchain install stable`
@@ -31,3 +38,9 @@ CC=${ARCH}-linux-musl-gcc cargo build --package beefw --release \
 ```
 The cross-compiled program `target/${ARCH}-unknown-linux-musl/release/beefw` can be
 copied to a Linux server or VM and run there.
+
+# Contributing.
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+# License
+[GPLv3](https://choosealicense.com/licenses/gpl-3.0/)
